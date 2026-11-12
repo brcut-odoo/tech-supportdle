@@ -100,7 +100,7 @@
 		if (!set) return;
 		// Link to this exact day so the recipient plays the same set, even on a later day.
 		const url = `${location.origin}${location.pathname}?d=${set.dateKey}`;
-		const text = `Odoo Support Trivia #${set.number} (${set.dateKey})\n${squares} ${score}/${total}\n${url}`;
+		const text = `Odoo Tech Supportdle #${set.number} (${set.dateKey})\n${squares} ${score}/${total}\n${url}`;
 		try {
 			await navigator.clipboard.writeText(text);
 			copied = true;
@@ -125,13 +125,13 @@
 </script>
 
 <svelte:window onkeydown={onKey} />
-<svelte:head><title>Odoo Support Trivia</title></svelte:head>
+<svelte:head><title>Odoo Tech Supportdle</title></svelte:head>
 
 <header>
 	<div class="brand">
 		<span class="logo" aria-hidden="true">?</span>
 		<div>
-			<h1>Odoo Support Trivia</h1>
+			<h1>Odoo Tech Supportdle</h1>
 			{#if set}
 				<p class="sub">
 					#{set.number} · {set.dateKey}

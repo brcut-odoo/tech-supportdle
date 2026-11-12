@@ -8,7 +8,7 @@
 	const families = Object.entries(meta.families).sort((a, b) => b[1] - a[1]);
 </script>
 
-<svelte:head><title>How it works · Odoo Support Trivia</title></svelte:head>
+<svelte:head><title>How it works · Odoo Tech Supportdle</title></svelte:head>
 
 <p><a href={resolve('/')}>← Back to today's set</a></p>
 <article class="card">

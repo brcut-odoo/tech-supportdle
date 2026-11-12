@@ -1,4 +1,4 @@
-# Odoo Support Trivia
+# Odoo Tech Supportdle
 
 A daily 5-question trivia game for technical support, built from the **Odoo 19.0 Community** source code.
 Everyone gets the same set each UTC day. Every answer shows the file and line it comes from.
