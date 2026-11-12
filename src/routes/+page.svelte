@@ -98,8 +98,9 @@
 
 	async function share() {
 		if (!set) return;
-		const url = location.origin + location.pathname;
-		const text = `Odoo Support Trivia #${set.number}${replay ? ` (${set.dateKey})` : ''}\n${squares} ${score}/${total}\n${url}`;
+		// Link to this exact day so the recipient plays the same set, even on a later day.
+		const url = `${location.origin}${location.pathname}?d=${set.dateKey}`;
+		const text = `Odoo Support Trivia #${set.number} (${set.dateKey})\n${squares} ${score}/${total}\n${url}`;
 		try {
 			await navigator.clipboard.writeText(text);
 			copied = true;
