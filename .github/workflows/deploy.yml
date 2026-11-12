@@ -44,7 +44,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # e.g. "/SupportTrivia" for a project site, "" for a user/org site or custom domain
+          # e.g. "/tech-supportdle" for this project site, "" for a user/org site or custom domain
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
 
       - name: Upload Pages artifact

@@ -91,12 +91,12 @@ dispatch:
 
 One-time setup on GitHub: go to **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
-The workflow passes the Pages base path (e.g. `/SupportTrivia` for `https://<user>.github.io/SupportTrivia/`)
+The workflow passes the Pages base path (`/tech-supportdle` for https://brcut-odoo.github.io/tech-supportdle/)
 to the build as `BASE_PATH`. It is empty for a user/org site or a custom domain. To reproduce a Pages
 build locally:
 
 ```bash
-BASE_PATH=/SupportTrivia npm run build
+BASE_PATH=/tech-supportdle npm run build
 ```
 
 CI does **not** regenerate questions, because it has no Odoo checkout. Run `npm run generate` locally
