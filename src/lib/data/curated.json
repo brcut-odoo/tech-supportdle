@@ -1,0 +1,760 @@
+{
+ "questions": [
+  {
+   "id": "curated:picking-state-assigned",
+   "difficulty": 1,
+   "question": "A transfer shows the status **Ready**. What is the technical value of `stock.picking.state`?",
+   "answer": "assigned",
+   "distractors": [
+    "ready",
+    "confirmed",
+    "available",
+    "done"
+   ],
+   "explanation": "`('assigned', 'Ready')`. The label 'Waiting' is `confirmed`, and 'Waiting Another Operation' is `waiting`. Keep this in mind when you write domains or SQL during an investigation.",
+   "source": "odoo/addons/stock/models/stock_picking.py:578"
+  },
+  {
+   "id": "curated:picking-state-confirmed",
+   "difficulty": 2,
+   "question": "Which `stock.picking.state` value does the UI label **Waiting**?",
+   "answer": "confirmed",
+   "distractors": [
+    "waiting",
+    "draft",
+    "assigned",
+    "partially_available"
+   ],
+   "explanation": "`('confirmed', 'Waiting')` means the transfer waits for stock availability. `waiting` is 'Waiting Another Operation', which means it waits on a previous step (a chained move).",
+   "source": "odoo/addons/stock/models/stock_picking.py:577"
+  },
+  {
+   "id": "curated:move-state-partially",
+   "difficulty": 2,
+   "question": "Which of these states exists on `stock.move` but **not** on `stock.picking`?",
+   "answer": "partially_available",
+   "distractors": [
+    "waiting",
+    "assigned",
+    "confirmed",
+    "cancel"
+   ],
+   "explanation": "`stock.move.state` includes `('partially_available', 'Partially Available')`. The picking state is computed from its moves and has no such value.",
+   "source": "odoo/addons/stock/models/stock_move.py:111"
+  },
+  {
+   "id": "curated:sale-state-draft",
+   "difficulty": 1,
+   "question": "A sales order in state `draft` is displayed to the user as…",
+   "answer": "Quotation",
+   "distractors": [
+    "Draft",
+    "Quotation Sent",
+    "Sales Order",
+    "New"
+   ],
+   "explanation": "`SALE_ORDER_STATE` maps `draft` to 'Quotation', `sent` to 'Quotation Sent', `sale` to 'Sales Order' and `cancel` to 'Cancelled'. The old `done` state is gone; locking is now the separate `locked` boolean.",
+   "source": "odoo/addons/sale/models/sale_order.py:26"
+  },
+  {
+   "id": "curated:sale-state-confirmed",
+   "difficulty": 1,
+   "question": "What is the technical state of a **confirmed** sales order?",
+   "answer": "sale",
+   "distractors": [
+    "done",
+    "confirmed",
+    "order",
+    "posted"
+   ],
+   "explanation": "Confirmed orders have `state = 'sale'`. Locked orders stay in `sale` with `locked = True`; there is no `done` state any more.",
+   "source": "odoo/addons/sale/models/sale_order.py:29"
+  },
+  {
+   "id": "curated:po-state-toapprove",
+   "difficulty": 2,
+   "question": "Which `purchase.order` state value contains a **space**?",
+   "answer": "to approve",
+   "distractors": [
+    "to_approve",
+    "rfq sent",
+    "purchase order",
+    "draft"
+   ],
+   "explanation": "The state value is the legacy `'to approve'` (with a space), used when two-step validation is enabled. The other states are draft (RFQ), sent (RFQ Sent), purchase and cancel.",
+   "source": "odoo/addons/purchase/models/purchase_order.py:108"
+  },
+  {
+   "id": "curated:move-states",
+   "difficulty": 1,
+   "question": "Which of these is **not** a valid `account.move.state` value?",
+   "answer": "paid",
+   "distractors": [
+    "draft",
+    "posted",
+    "cancel"
+   ],
+   "explanation": "`account.move.state` only has draft, posted and cancel. Payment status is tracked separately in `payment_state`.",
+   "source": "odoo/addons/account/models/account_move.py:130"
+  },
+  {
+   "id": "curated:payment-state-inpayment",
+   "difficulty": 2,
+   "question": "An invoice is paid, but the bank statement line is not reconciled yet. Which `payment_state` does it show?",
+   "answer": "in_payment",
+   "distractors": [
+    "paid",
+    "partial",
+    "not_paid",
+    "blocked"
+   ],
+   "explanation": "`PAYMENT_STATE_SELECTION` includes `in_payment` ('In Payment'), used until the outstanding payment is reconciled with the bank. Other values: not_paid, paid, partial, reversed, blocked, invoicing_legacy.",
+   "source": "odoo/addons/account/models/account_move.py:49"
+  },
+  {
+   "id": "curated:payment-state-legacy",
+   "difficulty": 3,
+   "question": "Which `payment_state` value marks invoices created before the Accounting app was installed?",
+   "answer": "invoicing_legacy",
+   "distractors": [
+    "legacy",
+    "imported",
+    "not_paid",
+    "blocked"
+   ],
+   "explanation": "`('invoicing_legacy', 'Invoicing App Legacy')` marks moves that predate the full Accounting app. It often shows up on databases migrated from Invoicing to Accounting.",
+   "source": "odoo/addons/account/models/account_move.py:56"
+  },
+  {
+   "id": "curated:mrp-to-close",
+   "difficulty": 2,
+   "question": "In which manufacturing order state is everything produced, but the MO has not been marked as done yet?",
+   "answer": "to_close",
+   "distractors": [
+    "progress",
+    "confirmed",
+    "done",
+    "to_done"
+   ],
+   "explanation": "The `mrp.production` states are draft, confirmed, progress, to_close, done and cancel. `to_close` is computed once the quantity produced reaches the quantity to produce.",
+   "source": "odoo/addons/mrp/models/mrp_production.py:181"
+  },
+  {
+   "id": "curated:wh-receipt-code",
+   "difficulty": 1,
+   "question": "For a warehouse with code `WH`, what is the default sequence prefix of its **Receipts** operation type?",
+   "answer": "WH/IN/",
+   "distractors": [
+    "WH/REC/",
+    "WH/RCV/",
+    "IN/WH/",
+    "WH/INC/"
+   ],
+   "explanation": "Warehouse operation types are built in Python using `sequence_code`: IN, OUT, PICK, PACK, INT, QC, STOR, XD. The prefix is `<warehouse code>/<sequence_code>/`.",
+   "source": "odoo/addons/stock/models/stock_warehouse.py:1011"
+  },
+  {
+   "id": "curated:wh-xd-code",
+   "difficulty": 3,
+   "question": "Which warehouse operation type uses the sequence code `XD`?",
+   "answer": "Cross Dock",
+   "distractors": [
+    "External Delivery",
+    "Exchange",
+    "Extra Delivery",
+    "Dropship"
+   ],
+   "explanation": "`XD` stands for cross-docking: goods go from receipt to delivery without being stored. The other codes are IN, OUT, PICK, PACK, QC, STOR and INT.",
+   "source": "odoo/addons/stock/models/stock_warehouse.py:1078"
+  },
+  {
+   "id": "curated:wh-stor-code",
+   "difficulty": 2,
+   "question": "In 19.0, which operation type uses the sequence code `STOR`?",
+   "answer": "Storage (putaway after receipt)",
+   "distractors": [
+    "Stock Reservation",
+    "Store Pickup",
+    "Storno / Reverse",
+    "Scrap"
+   ],
+   "explanation": "`STOR` is the storage step of multi-step receptions, between input/quality control and the stock location.",
+   "source": "odoo/addons/stock/models/stock_warehouse.py:1057"
+  },
+  {
+   "id": "curated:reservation-default",
+   "difficulty": 2,
+   "question": "What is the default **Reservation Method** of an operation type (`stock.picking.type`)?",
+   "answer": "At Confirmation",
+   "distractors": [
+    "Manually",
+    "Before scheduled date",
+    "At Validation",
+    "Never"
+   ],
+   "explanation": "`reservation_method` defaults to `at_confirm`. The alternatives are `manual` and `by_date` (Before scheduled date, using `reservation_days_before`).",
+   "source": "odoo/addons/stock/models/stock_picking.py:67"
+  },
+  {
+   "id": "curated:quant-model",
+   "difficulty": 1,
+   "question": "Which model stores the on-hand quantity of a product per location, lot and package?",
+   "answer": "stock.quant",
+   "distractors": [
+    "stock.move.line",
+    "stock.move",
+    "product.product",
+    "stock.location"
+   ],
+   "explanation": "`stock.quant` (`_description = 'Quants'`) holds the current quantities. Moves and move lines are the history that updates them.",
+   "source": "odoo/addons/stock/models/stock_quant.py:20"
+  },
+  {
+   "id": "curated:invoice-policy",
+   "difficulty": 1,
+   "question": "What are the two values of the product **Invoicing Policy** (`invoice_policy`)?",
+   "answer": "order / delivery",
+   "distractors": [
+    "ordered / invoiced",
+    "manual / auto",
+    "prepaid / postpaid",
+    "order / milestone"
+   ],
+   "explanation": "In 19.0 the field is `('order', 'Ordered quantities')` or `('delivery', 'Delivered quantities')`. Service products have other policy fields (e.g. `service_policy`) layered on top.",
+   "source": "odoo/addons/sale/models/product_template.py:35"
+  },
+  {
+   "id": "curated:autopost",
+   "difficulty": 2,
+   "question": "Which of these is **not** a value of `account.move.auto_post`?",
+   "answer": "weekly",
+   "distractors": [
+    "no",
+    "at_date",
+    "monthly",
+    "quarterly"
+   ],
+   "explanation": "`auto_post` supports no, at_date, monthly, quarterly and yearly, which covers recurring entries. It has no weekly option.",
+   "source": "odoo/addons/account/models/account_move.py:294"
+  },
+  {
+   "id": "curated:hard-lock",
+   "difficulty": 3,
+   "question": "Which company lock date **cannot be removed or moved back** once set?",
+   "answer": "hard_lock_date",
+   "distractors": [
+    "fiscalyear_lock_date",
+    "tax_lock_date",
+    "sale_lock_date",
+    "period_lock_date"
+   ],
+   "explanation": "`hard_lock_date` is irreversible. `fiscalyear_lock_date`, `tax_lock_date`, `sale_lock_date` and `purchase_lock_date` can be changed or bypassed with exceptions.",
+   "source": "odoo/addons/account/models/company.py:97"
+  },
+  {
+   "id": "curated:expected-singleton",
+   "difficulty": 1,
+   "question": "A traceback ends with `ValueError: Expected singleton: sale.order(12, 13)`. What does it mean?",
+   "answer": "Code accessed a field or called ensure_one() on a recordset that has more than one record",
+   "distractors": [
+    "Two records share the same name",
+    "A sequence produced a duplicate number",
+    "The record was deleted by another transaction",
+    "A unique SQL constraint was violated"
+   ],
+   "explanation": "`ensure_one()` raises it, and so does reading a field on a multi-record set. It typically appears in custom code or server actions that loop incorrectly.",
+   "source": "odoo/odoo/orm/models.py:5961",
+   "code": "ValueError: Expected singleton: sale.order(12, 13)"
+  },
+  {
+   "id": "curated:missing-error",
+   "difficulty": 1,
+   "question": "Which exception class raises the message \"Record does not exist or has been deleted.\"?",
+   "answer": "MissingError",
+   "distractors": [
+    "UserError",
+    "AccessError",
+    "ValidationError",
+    "CacheMiss"
+   ],
+   "explanation": "Reading a field on a record whose row is gone raises `MissingError`. A common cause is a stale reference, such as a deleted record still referenced in an action, a cron or a client cache.",
+   "source": "odoo/odoo/orm/fields.py:1712"
+  },
+  {
+   "id": "curated:log-access-columns",
+   "difficulty": 2,
+   "question": "Which of these is **not** one of the automatic `LOG_ACCESS_COLUMNS`?",
+   "answer": "active",
+   "distractors": [
+    "create_uid",
+    "create_date",
+    "write_uid",
+    "write_date"
+   ],
+   "explanation": "`LOG_ACCESS_COLUMNS = ['create_uid', 'create_date', 'write_uid', 'write_date']`. `MAGIC_COLUMNS` adds `id`. `active` is optional and only exists if the model defines it.",
+   "source": "odoo/odoo/orm/models.py:296"
+  },
+  {
+   "id": "curated:prefetch-max",
+   "difficulty": 3,
+   "question": "What is `PREFETCH_MAX`, the maximum number of records the ORM prefetches in one batch?",
+   "answer": "1000",
+   "distractors": [
+    "80",
+    "100",
+    "500",
+    "10000"
+   ],
+   "explanation": "Defined in `odoo/tools/constants.py`. It is also the batch size you will see in many slow SQL logs.",
+   "source": "odoo/odoo/tools/constants.py:11"
+  },
+  {
+   "id": "curated:insert-batch",
+   "difficulty": 3,
+   "question": "How many rows does the ORM insert per batch in `create()` (`INSERT_BATCH_SIZE`)?",
+   "answer": "100",
+   "distractors": [
+    "50",
+    "500",
+    "1000",
+    "80"
+   ],
+   "explanation": "`INSERT_BATCH_SIZE = 100` in `orm/models.py`. A `create()` with many vals is split into INSERTs of 100 rows.",
+   "source": "odoo/odoo/orm/models.py:117"
+  },
+  {
+   "id": "curated:orm-folder",
+   "difficulty": 2,
+   "question": "In Odoo 19.0, where does `BaseModel` (the ORM core) live?",
+   "answer": "odoo/orm/models.py",
+   "distractors": [
+    "odoo/models.py",
+    "odoo/osv/orm.py",
+    "odoo/api/models.py",
+    "odoo/fields/base.py"
+   ],
+   "explanation": "The ORM was split into the `odoo/orm/` package (models.py, fields*.py, environments, domains…). `odoo/models.py` no longer exists in 19.0.",
+   "source": "odoo/odoo/orm/models.py:334"
+  },
+  {
+   "id": "curated:models-constraint",
+   "difficulty": 2,
+   "question": "In 19.0, how is a SQL constraint declared on a model?",
+   "answer": "_my_check = models.Constraint('CHECK(...)', 'message')",
+   "distractors": [
+    "_sql_constraints = [('name', 'CHECK(...)', 'message')]",
+    "@api.constrains('field') returning False",
+    "_constraints = [(method, msg, fields)]",
+    "models.SQLConstraint('name', 'CHECK(...)')"
+   ],
+   "explanation": "19.0 replaces the `_sql_constraints` list with class attributes of type `models.Constraint` (and `models.Index`/`UniqueIndex`). Example: `sale.order._date_order_conditional_required`.",
+   "source": "odoo/addons/sale/models/sale_order.py:42"
+  },
+  {
+   "id": "curated:release",
+   "difficulty": 1,
+   "question": "In `odoo/release.py` on the 19.0 branch, what is `version_info`?",
+   "answer": "(19, 0, 0, FINAL, 0, '')",
+   "distractors": [
+    "(19, 0, 0, 'final', 0)",
+    "('19.0', 'final')",
+    "(19, 0, 'stable', 0)",
+    "(19, 0, 0, ALPHA, 1, '')"
+   ],
+   "explanation": "`version_info = (19, 0, 0, FINAL, 0, '')`. `series` / `major_version` are derived from its first two items.",
+   "source": "odoo/odoo/release.py:15"
+  },
+  {
+   "id": "curated:rlimit-as",
+   "difficulty": 3,
+   "question": "How does Odoo enforce `limit_memory_hard` on a worker?",
+   "answer": "setrlimit(RLIMIT_AS) so allocations beyond it fail",
+   "distractors": [
+    "The master sends SIGKILL when RSS exceeds it",
+    "PostgreSQL work_mem is lowered",
+    "Python's gc is forced every request",
+    "A cgroup is created per worker"
+   ],
+   "explanation": "`memory_hard_limit` calls `resource.setrlimit(resource.RLIMIT_AS, ...)`. `limit_memory_soft` is instead checked after each request, and the worker is recycled gracefully.",
+   "source": "odoo/odoo/service/server.py:86"
+  },
+  {
+   "id": "curated:cron-timeout",
+   "difficulty": 2,
+   "question": "`limit_time_real_cron` defaults to `-1`. What does that mean?",
+   "answer": "Cron workers use the value of limit_time_real",
+   "distractors": [
+    "Crons never time out",
+    "Crons are disabled",
+    "Crons time out after 1 second",
+    "The value is read from ir.cron.timeout"
+   ],
+   "explanation": "When `limit_time_real_cron` is not > 0, the server falls back to `limit_time_real` for threads/workers running crons. Set it to 0 for no limit.",
+   "source": "odoo/odoo/service/server.py:522"
+  },
+  {
+   "id": "curated:cpu-signal",
+   "difficulty": 3,
+   "question": "Which signal does a worker receive when it exceeds `limit_time_cpu`?",
+   "answer": "SIGXCPU",
+   "distractors": [
+    "SIGALRM",
+    "SIGTERM",
+    "SIGKILL",
+    "SIGUSR1"
+   ],
+   "explanation": "Workers set `RLIMIT_CPU` to `cpu_time + limit_time_cpu`, so the kernel sends SIGXCPU when it is exceeded. The log says 'Worker (pid) CPU time limit (N) reached.'",
+   "source": "odoo/odoo/service/server.py:1301"
+  },
+  {
+   "id": "curated:sleep-interval",
+   "difficulty": 3,
+   "question": "What is `SLEEP_INTERVAL`, the cron thread polling interval, in `service/server.py`?",
+   "answer": "60 seconds",
+   "distractors": [
+    "5 seconds",
+    "10 seconds",
+    "30 seconds",
+    "300 seconds"
+   ],
+   "explanation": "`SLEEP_INTERVAL = 60     # 1 min`. Cron threads also wake up early when they get a database notification (cron trigger).",
+   "source": "odoo/odoo/service/server.py:68"
+  },
+  {
+   "id": "curated:gevent-port",
+   "difficulty": 1,
+   "question": "In multi-worker mode, which port serves websocket (`/websocket`) traffic by default?",
+   "answer": "8072",
+   "distractors": [
+    "8069",
+    "8070",
+    "8080",
+    "443"
+   ],
+   "explanation": "`--gevent-port` defaults to 8072. The reverse proxy must route `/websocket` there; if it doesn't, the bus and live features break when `workers > 0`.",
+   "source": "odoo/odoo/tools/config.py:266"
+  },
+  {
+   "id": "curated:filestore-path",
+   "difficulty": 1,
+   "question": "Where are attachments stored by default?",
+   "answer": "<data_dir>/filestore/<dbname>",
+   "distractors": [
+    "In the ir_attachment.db_datas column",
+    "<addons_path>/static/attachments",
+    "/var/lib/postgresql/<dbname>/files",
+    "<data_dir>/sessions/<dbname>"
+   ],
+   "explanation": "`ir_attachment.location` defaults to `'file'`, and `config.filestore(dbname)` returns `data_dir/filestore/dbname`. When you restore a DB without its filestore, images and assets are missing.",
+   "source": "odoo/odoo/tools/config.py:1035"
+  },
+  {
+   "id": "curated:attachment-location",
+   "difficulty": 2,
+   "question": "Which system parameter switches attachment storage between the filestore and the database?",
+   "answer": "ir_attachment.location",
+   "distractors": [
+    "attachment.storage",
+    "base.attachment_db",
+    "ir_attachment.store_fname",
+    "web.attachment.mode"
+   ],
+   "explanation": "`_storage()` returns `get_param('ir_attachment.location', 'file')`. Set it to `db` to store files in the database, then run `force_storage()` to migrate the existing ones.",
+   "source": "odoo/odoo/addons/base/models/ir_attachment.py:89"
+  },
+  {
+   "id": "curated:login-cooldown",
+   "difficulty": 2,
+   "question": "By default, after how many failed logins does Odoo start delaying login attempts from the same IP?",
+   "answer": "5",
+   "distractors": [
+    "3",
+    "10",
+    "20",
+    "It never does"
+   ],
+   "explanation": "`base.login_cooldown_after` defaults to 5 and `base.login_cooldown_duration` to 60 seconds. Set `login_cooldown_after` to 0 to disable it.",
+   "source": "odoo/odoo/addons/base/models/res_users.py:1302"
+  },
+  {
+   "id": "curated:reset-validity",
+   "difficulty": 2,
+   "question": "How long is a password reset link valid by default?",
+   "answer": "4 hours",
+   "distractors": [
+    "24 hours",
+    "1 hour",
+    "48 hours",
+    "144 hours"
+   ],
+   "explanation": "`auth_signup.reset_password.validity.hours` defaults to 4. Signup/invitation links use `auth_signup.signup.validity.hours`, which defaults to 144 (6 days).",
+   "source": "odoo/addons/auth_signup/models/res_partner.py:186"
+  },
+  {
+   "id": "curated:signup-validity",
+   "difficulty": 3,
+   "question": "How long is a **signup / invitation** link valid by default?",
+   "answer": "144 hours (6 days)",
+   "distractors": [
+    "24 hours",
+    "4 hours",
+    "72 hours (3 days)",
+    "30 days"
+   ],
+   "explanation": "`auth_signup.signup.validity.hours` defaults to 144. A user clicking an old invitation gets an 'expired' token.",
+   "source": "odoo/addons/auth_signup/models/res_partner.py:188"
+  },
+  {
+   "id": "curated:mail-loop",
+   "difficulty": 3,
+   "question": "Which two system parameters configure the incoming mail gateway **loop protection**?",
+   "answer": "mail.gateway.loop.minutes / mail.gateway.loop.threshold",
+   "distractors": [
+    "mail.loop.delay / mail.loop.max",
+    "mail.catchall.limit / mail.catchall.window",
+    "mail.bounce.limit / mail.bounce.minutes",
+    "mail.gateway.rate / mail.gateway.burst"
+   ],
+   "explanation": "By default it blocks a sender that creates more than 20 records within 120 minutes. `mail.gateway.allowed` lists exempted addresses.",
+   "source": "odoo/addons/mail/models/mail_gateway_allowed.py:35"
+  },
+  {
+   "id": "curated:json2",
+   "difficulty": 2,
+   "question": "Which module provides the new `/json/2/<model>/<method>` external API endpoint in 19.0?",
+   "answer": "rpc",
+   "distractors": [
+    "web",
+    "base",
+    "api",
+    "json_rpc"
+   ],
+   "explanation": "The `rpc` module ('RPC endpoints') exposes `/json/2`, authenticated with API keys (bearer). Classic XML-RPC/JSON-RPC are on the way out.",
+   "source": "odoo/addons/rpc/controllers/json2.py:50"
+  },
+  {
+   "id": "curated:apikey-model",
+   "difficulty": 2,
+   "question": "Which model stores users' API keys?",
+   "answer": "res.users.apikeys",
+   "distractors": [
+    "res.users.token",
+    "auth.api.key",
+    "ir.api.key",
+    "res.users.apikeys.description"
+   ],
+   "explanation": "Keys are stored hashed in `res.users.apikeys`. `res.users.apikeys.description` is the transient wizard used to create them.",
+   "source": "odoo/odoo/addons/base/models/res_users.py:1572"
+  },
+  {
+   "id": "curated:active-filter",
+   "difficulty": 1,
+   "question": "Why do archived records disappear from searches by default?",
+   "answer": "search() adds (active, '=', True) when the model has an active field and the domain doesn't mention it",
+   "distractors": [
+    "A record rule hides inactive records",
+    "Archived records are moved to another table",
+    "The web client filters them out only in views",
+    "ir.default sets a domain on every action"
+   ],
+   "explanation": "When `_active_name` is set (normally 'active'), the ORM injects the filter unless the domain already contains it or the context has `active_test=False`.",
+   "source": "odoo/odoo/orm/models.py:5377"
+  },
+  {
+   "id": "curated:noupdate",
+   "difficulty": 1,
+   "question": "A customer edited a standard email template, and the changes survived the module update. Why?",
+   "answer": "The record is in a noupdate=\"1\" data block",
+   "distractors": [
+    "Updates never touch mail templates",
+    "The template was copied to a new record automatically",
+    "ir.default stores the customization",
+    "Studio protects all edited records"
+   ],
+   "explanation": "Records loaded with `noupdate` are only created at install time (`mode == 'init'`). Without the flag, `-u` would overwrite customizations with the XML values.",
+   "source": "odoo/odoo/tools/convert.py:273"
+  },
+  {
+   "id": "curated:database-uuid",
+   "difficulty": 2,
+   "question": "Which system parameter is generated automatically and identifies the database for the subscription/publisher warranty?",
+   "answer": "database.uuid",
+   "distractors": [
+    "database.secret",
+    "web.base.url",
+    "database.create_date",
+    "base.enterprise_code"
+   ],
+   "explanation": "`ir.config_parameter` initializes `database.uuid` with `uuid.uuid1()`. When you duplicate a DB for testing, it gets a new uuid so it doesn't conflict with production.",
+   "source": "odoo/odoo/addons/base/models/ir_config_parameter.py:20"
+  },
+  {
+   "id": "curated:gc-filestore",
+   "difficulty": 3,
+   "question": "Which `ir.attachment` method removes files from the filestore that are no longer referenced?",
+   "answer": "_gc_file_store",
+   "distractors": [
+    "_clean_filestore",
+    "_vacuum_attachments",
+    "_file_gc",
+    "unlink_orphans"
+   ],
+   "explanation": "Files are not deleted immediately. They are marked in a checklist and garbage-collected by the autovacuum cron through `_gc_file_store`.",
+   "source": "odoo/odoo/addons/base/models/ir_attachment.py:192"
+  },
+  {
+   "id": "curated:gc-unlink-limit",
+   "difficulty": 3,
+   "question": "What is `GC_UNLINK_LIMIT`, the maximum number of records an autovacuum `_gc_*` method deletes per run?",
+   "answer": "100,000",
+   "distractors": [
+    "1,000",
+    "10,000",
+    "1,000,000",
+    "No limit"
+   ],
+   "explanation": "`GC_UNLINK_LIMIT = 100_000` in `odoo/tools/constants.py` caps garbage collection batches so that autovacuum stays within time limits.",
+   "source": "odoo/odoo/tools/constants.py:14"
+  },
+  {
+   "id": "curated:workers-zero",
+   "difficulty": 1,
+   "question": "With `workers = 0` (the default), how does Odoo serve requests?",
+   "answer": "Threaded mode: a single process with HTTP threads",
+   "distractors": [
+    "Prefork mode with one worker per CPU",
+    "Gevent only",
+    "It refuses to start",
+    "One process per database"
+   ],
+   "explanation": "`workers=0` uses the ThreadedServer. With `workers > 0`, the PreforkServer is used, along with separate cron workers and a gevent process for websockets.",
+   "source": "odoo/odoo/service/server.py:1660"
+  },
+  {
+   "id": "curated:limit-request",
+   "difficulty": 2,
+   "question": "After how many requests is a prefork HTTP worker recycled by default (`limit_request`)?",
+   "answer": "65536",
+   "distractors": [
+    "8192",
+    "1000",
+    "100000",
+    "Never"
+   ],
+   "explanation": "`limit_request` defaults to `2**16`. Recycling limits memory growth caused by fragmentation.",
+   "source": "odoo/odoo/tools/config.py:500"
+  },
+  {
+   "id": "curated:dbfilter",
+   "difficulty": 1,
+   "question": "Which server option picks the database from the requested hostname, e.g. `^%d$`?",
+   "answer": "--db-filter",
+   "distractors": [
+    "--database",
+    "--db-host",
+    "--proxy-mode",
+    "--domain-filter"
+   ],
+   "explanation": "`dbfilter` is a regex where `%h` is the full hostname and `%d` is its first subdomain. It is essential when a single server hosts several databases.",
+   "source": "odoo/odoo/tools/config.py:281"
+  },
+  {
+   "id": "curated:proxy-mode",
+   "difficulty": 1,
+   "question": "Behind nginx, redirects use `http://` and logs show the proxy IP. Which option is probably missing?",
+   "answer": "--proxy-mode",
+   "distractors": [
+    "--x-sendfile",
+    "--http-interface",
+    "--db-filter",
+    "--gevent-port"
+   ],
+   "explanation": "`proxy_mode` makes Odoo trust the `X-Forwarded-*` headers (host, proto, for). The proxy must set them too.",
+   "source": "odoo/odoo/tools/config.py:270"
+  },
+  {
+   "id": "curated:skip-auto-install",
+   "difficulty": 3,
+   "question": "Which CLI flag prevents bridge modules from being installed automatically when you install modules with `-i`?",
+   "answer": "--skip-auto-install",
+   "distractors": [
+    "--no-auto-install",
+    "--without-bridges",
+    "--only-deps",
+    "--no-auto"
+   ],
+   "explanation": "`--skip-auto-install` (`skip_auto_install`) disables `auto_install` processing. It is useful to reproduce minimal setups.",
+   "source": "odoo/odoo/tools/config.py:242"
+  },
+  {
+   "id": "curated:with-demo",
+   "difficulty": 2,
+   "question": "In 19.0, how do you get demo data when creating a database from the command line?",
+   "answer": "--with-demo",
+   "distractors": [
+    "It is loaded by default; use --without-demo=all to skip",
+    "--demo=all",
+    "--load-demo",
+    "-d demo"
+   ],
+   "explanation": "19.0 flips the default: demo data is off unless `--with-demo` is passed.",
+   "source": "odoo/odoo/tools/config.py:238"
+  },
+  {
+   "id": "curated:server-wide",
+   "difficulty": 3,
+   "question": "What does the `--load` option configure?",
+   "answer": "Server-wide modules loaded without a database (e.g. base, rpc, web)",
+   "distractors": [
+    "Modules to install on startup",
+    "Python files to import before startup",
+    "Translations to load",
+    "Demo data modules"
+   ],
+   "explanation": "`--load` sets `server_wide_modules`, which defaults to `DEFAULT_SERVER_WIDE_MODULES`. These modules are imported at boot and their controllers are available before a database is selected.",
+   "source": "odoo/odoo/tools/config.py:254"
+  },
+  {
+   "id": "curated:company-check",
+   "difficulty": 2,
+   "question": "Which model attribute makes the ORM verify that related records belong to compatible companies?",
+   "answer": "_check_company_auto = True",
+   "distractors": [
+    "_multi_company = True",
+    "_company_dependent = True",
+    "_check_company_domain = True",
+    "_company_rule = True"
+   ],
+   "explanation": "With `_check_company_auto` set, `create`/`write` call `_check_company()` on fields declared with `check_company=True`. This raises the well-known 'Incompatible companies on records' error.",
+   "source": "odoo/odoo/orm/models.py:4522"
+  },
+  {
+   "id": "curated:float-round",
+   "difficulty": 2,
+   "question": "Which utility should you use to compare monetary amounts safely in Odoo code?",
+   "answer": "float_compare / currency.compare_amounts",
+   "distractors": [
+    "== on the float values",
+    "round(a, 2) == round(b, 2)",
+    "Decimal(a) == Decimal(b)",
+    "math.isclose with defaults"
+   ],
+   "explanation": "`odoo/tools/float_utils.py` provides `float_round`, `float_compare` and `float_is_zero` with a precision. Currencies wrap them in `round()`, `compare_amounts()` and `is_zero()`.",
+   "source": "odoo/odoo/tools/float_utils.py:57"
+  },
+  {
+   "id": "curated:module-update-wizard",
+   "difficulty": 2,
+   "question": "What is the technical model behind **Apps > Update Apps List**?",
+   "answer": "base.module.update",
+   "distractors": [
+    "ir.module.module",
+    "base.module.upgrade",
+    "ir.module.update",
+    "base.module.install"
+   ],
+   "explanation": "`base.module.update` scans the addons paths for new modules. `base.module.upgrade` is the 'apply scheduled upgrades' wizard.",
+   "source": "odoo/odoo/addons/base/wizard/base_module_update.py:7"
+  }
+ ]
+}
