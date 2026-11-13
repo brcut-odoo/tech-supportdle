@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { dateKeyUTC, isValidKey, keyFromIndex, dayIndex, msUntilNextDay, pickDaily } from '#lib/daily.ts';
 	import { inline } from '#lib/inline.ts';
 	import { pool } from '#lib/pool.ts';
@@ -54,10 +55,10 @@
 		if (today && dateKeyUTC() !== today && !replay) location.reload();
 	}
 
-	onMount(() => {
+	function loadSet(requested: string | null) {
 		today = dateKeyUTC();
-		const requested = new URLSearchParams(location.search).get('d');
 		let key = today;
+		replay = false;
 		if (requested && isValidKey(requested) && requested < today && dayIndex(requested) >= 0) {
 			key = requested;
 			replay = true;
@@ -66,7 +67,19 @@
 		day = loadDay(key, set.questions.length);
 		const firstOpen = day.answers.findIndex((a) => a === null);
 		current = firstOpen === -1 ? set.questions.length : firstOpen;
+		copied = false;
 		stats = loadStats();
+	}
+
+	// Client-side navigation between ?d= days reuses this component, so reload the set
+	// whenever the query changes rather than only on mount.
+	$effect(() => {
+		const d = page.url.searchParams.get('d');
+		untrack(() => loadSet(d));
+		window.scrollTo({ top: 0 });
+	});
+
+	onMount(() => {
 		tick();
 		const id = setInterval(tick, 1000);
 		return () => clearInterval(id);
