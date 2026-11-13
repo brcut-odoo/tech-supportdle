@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dateKeyUTC, dayIndex, isValidKey, keyFromIndex, pickDaily, puzzleNumber } from '../src/lib/daily';
+import { dateKeyUTC, dayIndex, isValidKey, keyFromIndex, pickDaily, puzzleNumber, topicOf } from '../src/lib/daily';
 import { cyrb128, mulberry32 } from '../src/lib/rng';
 import { pool } from '../src/lib/pool';
 import type { Question } from '../src/lib/types';
@@ -33,9 +33,12 @@ describe('dates', () => {
 describe('pickDaily', () => {
 	it('has a usable pool', () => {
 		expect(pool.filter((q) => q.family === 'curated').length).toBeGreaterThan(20);
-		for (const d of [1, 2, 3] as const) {
+		for (const d of [2, 3] as const) {
 			expect(pool.filter((q) => q.family !== 'curated' && q.difficulty === d).length).toBeGreaterThan(20);
 		}
+		// Advanced audience: no easy generated questions, and enough hard ones for 3 a day.
+		expect(pool.filter((q) => q.family !== 'curated' && q.difficulty === 1)).toHaveLength(0);
+		expect(pool.filter((q) => q.family !== 'curated' && q.difficulty === 3).length).toBeGreaterThan(300);
 	});
 
 	it('is reproducible for the same date', () => {
@@ -63,6 +66,33 @@ describe('pickDaily', () => {
 			const tomorrow = ids(keyFromIndex(i + 1));
 			expect(tomorrow.some((id) => today.has(id))).toBe(false);
 		}
+	});
+
+	it('drops generated questions that a curated one supersedes', () => {
+		const ids = new Set(pool.map((q) => q.id));
+		expect(ids.has('config-param:mail.mail.force.send.limit')).toBe(false);
+		expect(ids.has('server-option:limit_time_real_cron')).toBe(false);
+		expect(ids.has('curated:force-send-limit')).toBe(true);
+	});
+
+	it('mixes topics: the 5 questions of a day never share a topic', () => {
+		for (let i = 0; i < 400; i++) {
+			const topics = pickDaily(keyFromIndex(i), pool).questions.map(topicOf);
+			expect(new Set(topics).size, `day ${i}: ${topics.join(', ')}`).toBe(5);
+		}
+	});
+
+	it('shows every topic regularly', () => {
+		const lastSeen = new Map<string, number>();
+		let worstGap = 0;
+		for (let i = 0; i < 365; i++) {
+			for (const t of pickDaily(keyFromIndex(i), pool).questions.map(topicOf)) {
+				worstGap = Math.max(worstGap, i - (lastSeen.get(t) ?? 0));
+				lastSeen.set(t, i);
+			}
+		}
+		expect(lastSeen.size).toBeGreaterThanOrEqual(6);
+		expect(worstGap).toBeLessThanOrEqual(5);
 	});
 
 	it('does not repeat a generated question within 30 days', () => {

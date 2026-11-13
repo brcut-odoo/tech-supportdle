@@ -77,7 +77,7 @@ def generate(scan: Scan, cap: int = 120) -> list[dict]:
             continue
         trig_txt = " and ".join(f"`{t}`" for t in trig)
         out.append(question(
-            name, "manifest-autoinstall", 3,
+            name, "manifest-autoinstall", 2,
             f"Which module is installed automatically as soon as {trig_txt} "
             f"{'are both' if len(trig) == 2 else 'are all' if len(trig) > 2 else 'is'} installed?",
             name, dist,

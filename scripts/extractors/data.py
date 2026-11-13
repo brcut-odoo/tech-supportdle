@@ -143,7 +143,7 @@ def generate(scan: Scan) -> list[dict]:
         if len(dist) < 3:
             continue
         out.append(question(
-            key, "config-param", 3,
+            key, "config-param", 2,
             f"If the system parameter `{key}` is not set, what default value does the code use?",
             ans, dist,
             f"The code reads it with `get_param('{key}', {default!r})`. You can override it under Settings > "

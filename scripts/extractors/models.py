@@ -51,7 +51,8 @@ def generate(scan: Scan) -> list[dict]:
         n += 1
 
     # Default _order
-    orders = [m for m in defining if m.order and m.kind == "Model" and m.order.strip() not in ("id", "id desc")]
+    orders = [m for m in defining if m.order and m.name in scan.familiar_models
+              and m.order.strip() not in ("id", "id desc")]
     all_orders = sorted({m.order for m in orders})
     for m in orders[:70]:
         rng = stable_rng("order", m.name)

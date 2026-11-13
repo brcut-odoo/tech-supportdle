@@ -14,19 +14,28 @@
 <article class="card">
 	<h1>How it works</h1>
 	<p>
-		Every day at 00:00 UTC, everyone gets the same five questions. The date is the seed: each difficulty
-		bucket is a deck shuffled with a seeded PRNG (cyrb128 → mulberry32). Day <em>N</em> deals the next cards,
-		so no question repeats until its deck runs out. Answer options are shuffled with a seed derived from the
-		date. The set is fully reproducible: <code>?d=YYYY-MM-DD</code> replays any past day.
+		Every day at 00:00 UTC, everyone gets the same five questions. The date is the seed: questions are
+		grouped into decks by topic and difficulty, each shuffled with a seeded PRNG (cyrb128 → mulberry32).
+		A deck deals its next card whenever its topic comes up, so no question repeats until its deck runs out.
+		Answer options are shuffled with a seed derived from the date. The set is fully reproducible:
+		<code>?d=YYYY-MM-DD</code> replays any past day.
 	</p>
-	<p>Each set has 2 easy questions, 1 hand-curated support classic, 1 medium and 1 hard.</p>
+	<p>
+		The game is tuned for experienced support engineers. Each set has 2 medium questions, 1 hand-curated
+		support classic and 2 hard ones. There are no easy questions. The five always cover five different topics
+		(fields, security, models, errors, data, setup), and the least recently seen topics come first, so every
+		topic is back within a few days. Hard questions only ask about models you can open from a menu in an app
+		or a widely used module, not framework internals.
+	</p>
 
 	<h2>Where the questions come from</h2>
 	<p>
-		A Python script scans Odoo <strong>{meta.version}</strong> Community{meta.commit ? ` (commit ${meta.commit})` : ''}
+		A Python script scans Odoo <strong>{meta.version}</strong> Community{meta.commit ? ` (commit ${meta.commit.slice(0, 12)})` : ''}
 		across {meta.modules} modules. Localisations and test modules are skipped, and Enterprise is not included.
 		The script reads manifests, model classes, <code>raise UserError(...)</code> calls, constraints, data XML
-		(crons, sequences, groups, mail templates), <code>get_param</code> defaults and <code>odoo/tools/config.py</code>.
+		(crons, sequences, groups, mail templates, record rules), <code>ir.model.access.csv</code>, field definitions
+		(which module adds a field, related paths, <code>ondelete</code>, company-dependent fields), <code>get_param</code>
+		defaults and <code>odoo/tools/config.py</code>.
 		Every answer links to the file and line it comes from.
 	</p>
 	<table>

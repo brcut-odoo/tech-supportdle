@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import csv
 import random
 import re
 from dataclasses import dataclass, field
@@ -14,7 +15,10 @@ SKIP_PREFIXES = ("test_", "l10n_", "hw_")
 SKIP_CONTAINS = ("_test", "test_")
 SKIP_DIRS = {"tests", "migrations", "upgrades", "static", "__pycache__", "populate"}
 
-BASE_DEFAULTS = {"interval_number": "1", "interval_type": "months"}
+# A module is "widely used" when at least this many other modules depend on it (transitively).
+FAMILIAR_IMPORTANCE = 25
+
+BASE_DEFAULTS ={"interval_number": "1", "interval_type": "months"}
 
 
 def stable_rng(*parts: object) -> random.Random:
@@ -106,6 +110,28 @@ class Constraint:
 
 
 @dataclass
+class FieldDef:
+    module: str
+    model: str
+    name: str
+    ftype: str  # Char, Many2one, ...
+    attrs: dict  # keyword arguments; non-literal values are stored as Ellipsis
+    comodel: str | None
+    extension: bool  # declared in an _inherit extension class, not where the model is defined
+    source: str
+
+
+@dataclass
+class Access:
+    module: str
+    xmlid: str
+    model_ref: str  # e.g. sale.model_sale_order
+    group_ref: str  # e.g. sales_team.group_sale_salesman ('' = every user)
+    perms: tuple  # (read, write, create, unlink) booleans
+    source: str
+
+
+@dataclass
 class Scan:
     root: Path  # the community checkout, e.g. .../19.0/odoo
     modules: dict[str, Module] = field(default_factory=dict)
@@ -114,10 +140,32 @@ class Scan:
     constraints: list[Constraint] = field(default_factory=list)
     get_params: list[tuple[str, object, str, str]] = field(default_factory=list)  # key, default, module, source
     records: list[Record] = field(default_factory=list)
+    fields: list[FieldDef] = field(default_factory=list)
+    accesses: list[Access] = field(default_factory=list)
 
     def rel(self, p: Path, line: int | None = None) -> str:
         s = str(p.relative_to(self.root.parent))
         return f"{s}:{line}" if line else s
+
+    @cached_property
+    def familiar_models(self) -> set[str]:
+        """Models a user can open from the UI: the `res_model` of a window action in an installable
+        module. Hard questions stick to these, so they are about screens people know rather than
+        framework internals."""
+        out = set()
+        for r in self.records:
+            if r.model == "ir.actions.act_window" and r.fields.get("res_model"):
+                out.add(r.fields["res_model"])
+        concrete = {m.name for m in self.models if m.name and m.kind == "Model"}
+        owners = self.model_owner
+        # Only regular records (no wizards) owned by an app or a widely used module. Technical
+        # menus (Settings > Technical) expose ir.* models; those stay out on purpose.
+        return {
+            m for m in out & concrete
+            if not m.startswith(("ir.", "base.", "res.users.", "res.groups."))
+            and owners.get(m) in self.modules
+            and (self.modules[owners[m]].is_app or self.modules[owners[m]].importance >= FAMILIAR_IMPORTANCE)
+        }
 
     @cached_property
     def by_importance(self) -> list[Module]:
@@ -199,6 +247,7 @@ def discover(root: Path) -> Scan:
     for m in scan.modules.values():
         _scan_python(scan, m)
         _scan_xml(scan, m)
+        _scan_csv(scan, m)
     return scan
 
 
@@ -233,6 +282,37 @@ def _call_name(node: ast.AST) -> str | None:
         f = node.func
         return f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else None
     return None
+
+
+def _field_def(stmt: ast.AST):
+    """`name = fields.Type(...)` -> (name, Type, kwargs, comodel), or None."""
+    if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name)):
+        return None
+    call = stmt.value
+    if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
+            and isinstance(call.func.value, ast.Name) and call.func.value.id == "fields"):
+        return None
+    attrs: dict[str, object] = {}
+    for kw in call.keywords:
+        if kw.arg is None:
+            continue
+        val = _translated_str(kw.value)
+        if val is None:
+            try:
+                val = ast.literal_eval(kw.value)
+            except (ValueError, SyntaxError, TypeError):
+                val = ...  # present but not a literal (lambda, method reference, ...)
+        attrs[kw.arg] = val
+    comodel = None
+    if call.func.attr in ("Many2one", "One2many", "Many2many"):
+        comodel = _const_str(call.args[0]) if call.args else None
+        if not comodel and isinstance(attrs.get("comodel_name"), str):
+            comodel = attrs["comodel_name"]
+    elif call.args and "string" not in attrs:
+        first = _translated_str(call.args[0])
+        if first:
+            attrs["string"] = first
+    return stmt.targets[0].id, call.func.attr, attrs, comodel
 
 
 def _scan_python(scan: Scan, mod: Module) -> None:
@@ -281,6 +361,13 @@ def _scan_python(scan: Scan, mod: Module) -> None:
             model = mc.model
             if not model:
                 continue
+            is_ext = mc.name is None or mc.name in mc.inherit
+            for stmt in cls.body:
+                fd = _field_def(stmt)
+                if fd:
+                    fname, ftype, fattrs, comodel = fd
+                    scan.fields.append(FieldDef(mod.name, model, fname, ftype, fattrs, comodel, is_ext,
+                                                scan.rel(py, stmt.lineno)))
             for stmt in cls.body:
                 # models.Constraint("CHECK ...", "message")
                 if (isinstance(stmt, ast.Assign) and _call_name(stmt.value) == "Constraint"
@@ -300,6 +387,33 @@ def _scan_python(scan: Scan, mod: Module) -> None:
 
 
 # ------------------------------------------------------------------- xml ---
+
+def _scan_csv(scan: Scan, mod: Module) -> None:
+    """ir.model.access.csv files listed in the manifest."""
+    need = ("id", "model_id:id", "perm_read", "perm_write", "perm_create", "perm_unlink")
+    for f in mod.manifest.get("data", []):
+        p = mod.path / f
+        if p.name != "ir.model.access.csv" or not p.is_file():
+            continue
+        with p.open(encoding="utf-8") as fh:
+            rows = list(csv.reader(fh))
+        if not rows:
+            continue
+        col = {h.strip(): i for i, h in enumerate(rows[0])}
+        if any(n not in col for n in need):
+            continue
+
+        def qualify(ref: str) -> str:
+            return ref if "." in ref or not ref else f"{mod.name}.{ref}"
+
+        for lineno, row in enumerate(rows[1:], start=2):
+            if len(row) < len(col) or not row[0].strip():
+                continue
+            cell = lambda n: row[col[n]].strip() if n in col else ""  # noqa: E731
+            perms = tuple(cell(n) in ("1", "True", "true") for n in need[2:])
+            scan.accesses.append(Access(mod.name, qualify(cell("id")), qualify(cell("model_id:id")),
+                                        qualify(cell("group_id:id")), perms, scan.rel(p, lineno)))
+
 
 def _scan_xml(scan: Scan, mod: Module) -> None:
     parser = etree.XMLParser(recover=True, remove_comments=True)

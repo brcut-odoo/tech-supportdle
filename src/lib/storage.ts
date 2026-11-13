@@ -1,4 +1,8 @@
+import { POOL_VERSION } from './daily.ts';
+
 const PREFIX = 'ost:v1:';
+/** Saved answers are option indices, so they are only valid for the pool version they were made with. */
+const dayKey = (dateKey: string) => `day:p${POOL_VERSION}:${dateKey}`;
 
 export interface DayState {
 	/** Index into the shuffled options chosen for each question, or null when unanswered. */
@@ -43,13 +47,13 @@ function write(key: string, value: unknown): void {
 }
 
 export function loadDay(dateKey: string, size: number): DayState {
-	const s = read<DayState>('day:' + dateKey);
+	const s = read<DayState>(dayKey(dateKey));
 	if (s && s.answers?.length === size) return s;
 	return { answers: Array(size).fill(null), correct: Array(size).fill(null) };
 }
 
 export function saveDay(dateKey: string, state: DayState): void {
-	write('day:' + dateKey, state);
+	write(dayKey(dateKey), state);
 }
 
 export function loadStats(): Stats {

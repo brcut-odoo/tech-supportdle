@@ -13,7 +13,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from extractors import core, data, manifests, models  # noqa: E402
+from extractors import advanced, core, data, manifests, models  # noqa: E402
 from extractors.common import discover  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "src" / "lib" / "data" / "generated.json"
@@ -43,7 +43,7 @@ def main():
           f"{len(scan.raises)} raises, {len(scan.records)} XML records", file=sys.stderr)
 
     qs = []
-    for gen in (manifests, models, data, core):
+    for gen in (manifests, models, data, core, advanced):
         qs += gen.generate(scan)
     # keep at most 6 distractors and dedupe ids deterministically
     seen, uniq = set(), []
@@ -52,7 +52,8 @@ def main():
         if q["id"] not in seen:
             seen.add(q["id"])
             uniq.append(q)
-    qs = sorted(uniq, key=lambda q: q["id"])
+    # Advanced audience: only medium and hard questions make it into the pool.
+    qs = sorted((q for q in uniq if q["difficulty"] >= 2), key=lambda q: q["id"])
     errors = validate(qs)
     if errors:
         print("\n".join(errors[:50]), file=sys.stderr)
@@ -61,7 +62,7 @@ def main():
     release = {}
     exec((root / "odoo" / "release.py").read_text(), release)
     try:
-        commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "--short", "HEAD"], text=True).strip()
+        commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     except Exception:
         commit = None
     fam = Counter(q["family"] for q in qs)

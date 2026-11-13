@@ -390,7 +390,10 @@
     "The value is read from ir.cron.timeout"
    ],
    "explanation": "When `limit_time_real_cron` is not > 0, the server falls back to `limit_time_real` for threads/workers running crons. Set it to 0 for no limit.",
-   "source": "odoo/odoo/service/server.py:522"
+   "source": "odoo/odoo/service/server.py:522",
+   "supersedes": [
+    "server-option:limit_time_real_cron"
+   ]
   },
   {
    "id": "curated:cpu-signal",
@@ -755,6 +758,670 @@
    ],
    "explanation": "`base.module.update` scans the addons paths for new modules. `base.module.upgrade` is the 'apply scheduled upgrades' wizard.",
    "source": "odoo/odoo/addons/base/wizard/base_module_update.py:7"
+  },
+  {
+   "id": "curated:compute-sudo-default",
+   "difficulty": 3,
+   "question": "A computed field is declared without `compute_sudo`. What default does the ORM give it?",
+   "answer": "The same value as store (True for stored fields)",
+   "distractors": [
+    "Always False, like a regular field",
+    "Always True, like related fields",
+    "The value of related_sudo on the model",
+    "True only when the field has an inverse"
+   ],
+   "explanation": "`Field._setup_attrs__` does `attrs['compute_sudo'] = attrs.get('compute_sudo', store)`. Stored computed fields are recomputed as superuser by default. Non-stored ones run with the current user's rights. Related fields default to `True` (through `related_sudo`).",
+   "source": "odoo/odoo/orm/fields.py:448"
+  },
+  {
+   "id": "curated:domain-any-bang",
+   "difficulty": 3,
+   "question": "In 19.0 `Domain` objects, what is the difference between the `any` and `any!` operators?",
+   "answer": "any! does not add record rules on the comodel",
+   "distractors": [
+    "any! also matches archived comodel records",
+    "any! is evaluated in Python instead of SQL",
+    "any! requires at least one match per record",
+    "any! negates the subdomain, like not any"
+   ],
+   "explanation": "From `domains.py`: \"`any!` works like `any` but bypass adding record rules on the comodel\". It is an internal operator. It is accepted in `Domain('a', 'any!', dom)` but not in a plain list domain.",
+   "source": "odoo/odoo/orm/domains.py:102"
+  },
+  {
+   "id": "curated:domain-uppercase-op",
+   "difficulty": 3,
+   "question": "What does 19.0 do with the domain condition `('name', 'ILIKE', 'acme')`?",
+   "answer": "Emits a DeprecationWarning and lower-cases the operator",
+   "distractors": [
+    "Raises ValueError: Invalid operator",
+    "Silently treats it as a case-sensitive like",
+    "Accepts it unchanged; operators are case-insensitive",
+    "Drops the condition and logs a warning"
+   ],
+   "explanation": "`DomainCondition.checked()` warns \"Deprecated since 19.0, the domain condition ... should have a lower-case operator\" and rebuilds the condition with `operator.lower()`.",
+   "source": "odoo/odoo/orm/domains.py:820"
+  },
+  {
+   "id": "curated:state-copy-false",
+   "difficulty": 3,
+   "question": "A custom model has `state = fields.Selection(...)` without a `copy` attribute. What happens to `state` when a record is duplicated?",
+   "answer": "It is not copied: fields named state default to copy=False",
+   "distractors": [
+    "It is copied, like any stored field",
+    "It is reset only if the field has tracking=True",
+    "It is copied unless the model has an active field",
+    "It is set to the first selection value explicitly"
+   ],
+   "explanation": "In `Field._setup_attrs__`: `if name == 'state': attrs['copy'] = attrs.get('copy', False)`. So the field falls back to its default on the copy. This is a convention that depends on the field name.",
+   "source": "odoo/odoo/orm/fields.py:442"
+  },
+  {
+   "id": "curated:rule-inherits-parent",
+   "difficulty": 3,
+   "question": "How does `ir.rule._compute_domain` deal with record rules of an `_inherits` parent model, for example `product.template` rules when you search `product.product`?",
+   "answer": "Adds them as (parent_field, 'any', parent_domain), ANDed",
+   "distractors": [
+    "Ignores them; only the child's own rules apply",
+    "ORs them with the child's group rules",
+    "Applies them only for write and unlink modes",
+    "Copies them onto the child model at registry load"
+   ],
+   "explanation": "For each `_inherits` entry with a **stored** delegate field, the parent model's rule domain becomes `Domain(parent_field_name, 'any', domain)`. It is added to the global domains, so it is ANDed with everything else.",
+   "source": "odoo/odoo/addons/base/models/ir_rule.py:150"
+  },
+  {
+   "id": "curated:rule-combination",
+   "difficulty": 3,
+   "question": "A user matches 2 global rules and 3 group rules (through their groups) on the same model and mode. How are the domains combined?",
+   "answer": "G1 AND G2 AND (R1 OR R2 OR R3)",
+   "distractors": [
+    "G1 AND G2 AND R1 AND R2 AND R3",
+    "(G1 OR G2) AND (R1 OR R2 OR R3)",
+    "G1 OR G2 OR R1 OR R2 OR R3",
+    "(G1 AND G2) OR (R1 AND R2 AND R3)"
+   ],
+   "explanation": "Rules without groups go into `global_domains`. Rules for the user's groups go into `group_domains`, which are ORed into a single domain and then ANDed with all global domains. Group rules for groups the user does not have are skipped.",
+   "source": "odoo/odoo/addons/base/models/ir_rule.py:172"
+  },
+  {
+   "id": "curated:rule-blame-debug",
+   "difficulty": 3,
+   "question": "When does an ir.rule `AccessError` include the \"Blame the following rules:\" list and the failing record names?",
+   "answer": "Only for internal users in group base.group_no_one",
+   "distractors": [
+    "Always, for every user type",
+    "Only when the server runs with --dev=access",
+    "Only for users in base.group_system",
+    "Only when log_level is debug"
+   ],
+   "explanation": "`_make_access_error` builds the short message unless `self.env.user.has_group('base.group_no_one')` and the user is internal. Only then does it list up to 6 records (`records[:6]`) and the names of the failing rules.",
+   "source": "odoo/odoo/addons/base/models/ir_rule.py:259"
+  },
+  {
+   "id": "curated:with-company-false",
+   "difficulty": 3,
+   "question": "What does `records.with_company(False)` return?",
+   "answer": "self, with the environment unchanged",
+   "distractors": [
+    "Records with allowed_company_ids set to []",
+    "Records in the user's main company context",
+    "Records with company checks disabled",
+    "It raises ValueError: invalid company"
+   ],
+   "explanation": "`with_company` starts with `if not company: return self`. A falsy company (None/False/0/empty recordset) keeps the current environment. Otherwise it moves the company to the **front** of `allowed_company_ids`.",
+   "source": "odoo/odoo/orm/models.py:6024"
+  },
+  {
+   "id": "curated:force-company-deprecated",
+   "difficulty": 3,
+   "question": "A 16.0 customisation calls `self.with_context(force_company=2)`. What happens in 19.0?",
+   "answer": "A DeprecationWarning: the key is no longer supported",
+   "distractors": [
+    "env.company becomes company 2",
+    "Odoo maps it to allowed_company_ids=[2]",
+    "It raises AccessError if 2 is not allowed",
+    "It only affects company_dependent fields"
+   ],
+   "explanation": "`with_context` warns: \"Since 19.0, context key 'force_company' is no longer supported. Use with_company(company) instead.\" The key itself is ignored by the ORM.",
+   "source": "odoo/odoo/orm/models.py:6059"
+  },
+  {
+   "id": "curated:with-context-companies",
+   "difficulty": 3,
+   "question": "With `allowed_company_ids=[3, 1]` in the context, what is `rec.with_context({}).env.context`?",
+   "answer": "{'allowed_company_ids': [3, 1]}",
+   "distractors": [
+    "{}",
+    "{'allowed_company_ids': [1]}",
+    "{'allowed_company_ids': [3]}",
+    "{'lang': 'en_US'}"
+   ],
+   "explanation": "`with_context` forces `allowed_company_ids` to be kept when the new context does not contain it, even if you pass an empty dict to replace the context.",
+   "source": "odoo/odoo/orm/models.py:6070"
+  },
+  {
+   "id": "curated:with-user-su",
+   "difficulty": 3,
+   "question": "Is `rec.sudo().with_user(demo_user)` in superuser mode?",
+   "answer": "No: with_user always sets su=False",
+   "distractors": [
+    "Yes: sudo() takes precedence",
+    "Yes, until the next with_context call",
+    "Only for record rules, not for ACLs",
+    "Only if demo_user is in base.group_system"
+   ],
+   "explanation": "`with_user` returns `self.with_env(self.env(user=user, su=False))`. Switching user drops superuser mode, so call `sudo()` after `with_user()` if you need both.",
+   "source": "odoo/odoo/orm/models.py:6007"
+  },
+  {
+   "id": "curated:env-company-unauthorized",
+   "difficulty": 3,
+   "question": "`env.company` raises `AccessError: Access to unauthorized or invalid companies.` In which case is it **not** raised, even if `allowed_company_ids` contains a company the user cannot access?",
+   "answer": "When the environment is in sudo (su) mode",
+   "distractors": [
+    "When the company is a child of an allowed one",
+    "When the user is in base.group_multi_company",
+    "When the call comes from a cron job",
+    "When the company is archived"
+   ],
+   "explanation": "The check is `if not self.su:` and compares with `self.user._get_company_ids()`. In sudo mode any company id is accepted, which allows intercompany flows.",
+   "source": "odoo/odoo/orm/environments.py:241"
+  },
+  {
+   "id": "curated:read-group-recordset",
+   "difficulty": 3,
+   "question": "Which `_read_group` aggregate function returns a **recordset** per group, for example `partner_id:recordset`?",
+   "answer": "recordset",
+   "distractors": [
+    "array_agg",
+    "array_agg_distinct",
+    "records",
+    "count_distinct"
+   ],
+   "explanation": "`READ_GROUP_AGGREGATE['recordset']` runs `ARRAY_AGG(... ORDER BY id)` and is turned into a recordset afterwards. `array_agg` returns the raw list of values.",
+   "source": "odoo/odoo/orm/models.py:310"
+  },
+  {
+   "id": "curated:company-dependent-fallback",
+   "difficulty": 3,
+   "question": "In 19.0 `company_dependent` fields are stored as jsonb keyed by company id. Where does the fallback value come from when the current company has no key?",
+   "answer": "ir.default",
+   "distractors": [
+    "ir.property",
+    "ir.config_parameter",
+    "The field's default= attribute only",
+    "res.company"
+   ],
+   "explanation": "`get_company_dependent_fallback` reads `env['ir.default']._get_model_defaults(model)` for the current company as superuser. The `ir.property` model no longer exists in 19.0.",
+   "source": "odoo/odoo/orm/fields.py:796"
+  },
+  {
+   "id": "curated:check-company-property",
+   "difficulty": 3,
+   "question": "For a `company_dependent` many2one with `check_company=True` (e.g. `property_account_receivable_id`), which company does `_check_company` compare against?",
+   "answer": "self.env.company",
+   "distractors": [
+    "record.company_id",
+    "self.env.user.company_id",
+    "The first company in record.company_ids",
+    "The comodel record's company_id"
+   ],
+   "explanation": "Regular fields are checked against the record's `company_id`/`company_ids`. Property (company-dependent) fields are checked against `self.env.company`, the company the value is being set for.",
+   "source": "odoo/odoo/orm/models.py:4074"
+  },
+  {
+   "id": "curated:parent-path-format",
+   "difficulty": 3,
+   "question": "With `_parent_store = True`, record 84 has parent 63, whose parent is the root 42. What is `parent_path` of record 84?",
+   "answer": "42/63/84/",
+   "distractors": [
+    "42/63/84",
+    "/42/63/84",
+    "84/63/42/",
+    "42/63/"
+   ],
+   "explanation": "The path goes from the root to the record, and each id is followed by `/`. The final slash matters: '42/63' is a prefix of '42/630', but '42/63/' is not a prefix of '42/630/'.",
+   "source": "odoo/odoo/orm/models.py:3090"
+  },
+  {
+   "id": "curated:fixpoint-iterations",
+   "difficulty": 3,
+   "question": "The log shows `Too many iterations for flushing fields!`. After how many recompute/flush rounds does `env.flush_all()` give up?",
+   "answer": "10",
+   "distractors": [
+    "3",
+    "5",
+    "100",
+    "1000"
+   ],
+   "explanation": "`MAX_FIXPOINT_ITERATIONS = 10`. If computes keep marking fields dirty after 10 rounds, the loop ends with this warning. This usually means the compute dependencies loop.",
+   "source": "odoo/odoo/orm/environments.py:37"
+  },
+  {
+   "id": "curated:m2o-default-ondelete",
+   "difficulty": 3,
+   "question": "A **required** Many2one on a regular model has no `ondelete` attribute. Which policy does the ORM give it?",
+   "answer": "restrict",
+   "distractors": [
+    "cascade",
+    "set null",
+    "no action",
+    "set default"
+   ],
+   "explanation": "Default: `'restrict' if self.required else 'set null'`. On a TransientModel pointing to a regular model it is `cascade`/`set null`. Declaring `set null` on a required m2o raises a ValueError.",
+   "source": "odoo/odoo/orm/fields_relational.py:282"
+  },
+  {
+   "id": "curated:bypass-search-access",
+   "difficulty": 3,
+   "question": "In 19.0, which relational field attribute makes searches through the field skip access rules on the comodel (`_inherits` fields have it set automatically)?",
+   "answer": "bypass_search_access",
+   "distractors": [
+    "auto_join",
+    "compute_sudo",
+    "related_sudo",
+    "check_company"
+   ],
+   "explanation": "`Many2one._setup_attrs__` sets `delegate = True` and `bypass_search_access = True` for `_inherits` fields. In `domains.py`, such a field is searched like `any!`.",
+   "source": "odoo/odoo/orm/fields_relational.py:259"
+  },
+  {
+   "id": "curated:precompute-dependency",
+   "difficulty": 3,
+   "question": "A stored field with `precompute=True` depends (directly on the same model) on a stored computed field that is not precomputed. What happens at registry setup?",
+   "answer": "A warning is logged and precompute is set to False",
+   "distractors": [
+    "The dependency is precomputed automatically",
+    "A ValueError stops the registry from loading",
+    "Both fields are computed at flush, without a warning",
+    "The dependency is computed twice at create"
+   ],
+   "explanation": "`Field {self} cannot be precomputed as it depends on non-precomputed field {field}`, then `self.precompute = False`. Depending on a non-precomputed field is only allowed through a many2one.",
+   "source": "odoo/odoo/orm/fields.py:837"
+  },
+  {
+   "id": "curated:force-unlink-flag",
+   "difficulty": 3,
+   "question": "Which context key does `unlink()` check to skip `@api.ondelete(at_uninstall=False)` methods?",
+   "answer": "_force_unlink",
+   "distractors": [
+    "module_uninstall",
+    "force_delete",
+    "_uninstall_mode",
+    "install_mode"
+   ],
+   "explanation": "`MODULE_UNINSTALL_FLAG = '_force_unlink'`. `unlink()` calls a method when `func._ondelete or not self.env.context.get(MODULE_UNINSTALL_FLAG)`. `ir.model.data._process_end` sets this flag too.",
+   "source": "odoo/odoo/addons/base/models/ir_model.py:36"
+  },
+  {
+   "id": "curated:process-end",
+   "difficulty": 3,
+   "question": "After `-u my_module`, a record defined in an XML file that was removed from the module has disappeared from the database. Which method deleted it?",
+   "answer": "ir.model.data._process_end",
+   "distractors": [
+    "ir.model.data._module_data_uninstall",
+    "ir.module.module._remove_orphans",
+    "ir.model.data._update_xmlids",
+    "ir.model.data._load_records"
+   ],
+   "explanation": "At the end of loading, `_process_end` looks for xmlids of the updated modules with `noupdate` false that were not loaded again (`pool.loaded_xmlids`), and unlinks them under `_force_unlink`.",
+   "source": "odoo/odoo/addons/base/models/ir_model.py:2657"
+  },
+  {
+   "id": "curated:forcecreate",
+   "difficulty": 3,
+   "question": "A user deleted a record that comes from a `noupdate=\"1\"` data block. What happens at the next `-u` of the module?",
+   "answer": "It is recreated, unless the record has forcecreate=\"0\"",
+   "distractors": [
+    "Nothing: noupdate records are never touched again",
+    "The update fails with Cannot update missing record",
+    "It is recreated only with -i, not with -u",
+    "Its xmlid is marked noupdate=False and skipped"
+   ],
+   "explanation": "In update mode, `_tag_record` skips existing noupdate records. If the xmlid no longer resolves, it is skipped only when `forcecreate` is false. `forcecreate` defaults to `True`, so the record is created again.",
+   "source": "odoo/odoo/tools/convert.py:377"
+  },
+  {
+   "id": "curated:session-lifetime",
+   "difficulty": 3,
+   "question": "Which system parameter overrides how long inactive sessions are kept before they are removed server-side (default `SESSION_LIFETIME`, 7 days)?",
+   "answer": "sessions.max_inactivity_seconds",
+   "distractors": [
+    "web.session.lifetime",
+    "auth.session_timeout",
+    "session.gc.max_age",
+    "base.session_expiration_days"
+   ],
+   "explanation": "`http.py`: inactive sessions are reaped server-side with a threshold set by the optional config parameter `sessions.max_inactivity_seconds`. The default is `SESSION_LIFETIME = 60 * 60 * 24 * 7`.",
+   "source": "odoo/odoo/http.py:308"
+  },
+  {
+   "id": "curated:cron-deactivation",
+   "difficulty": 3,
+   "question": "When is a failing scheduled action automatically deactivated in 19.0?",
+   "answer": "After 5 consecutive failures AND 7 days since the first one",
+   "distractors": [
+    "After 5 consecutive failures",
+    "After 3 consecutive failures OR 24 hours",
+    "After 10 failures within 7 days",
+    "Never: it is only rescheduled"
+   ],
+   "explanation": "`MIN_FAILURE_COUNT_BEFORE_DEACTIVATION = 5` and `MIN_DELTA_BEFORE_DEACTIVATION = timedelta(days=7)`. Both thresholds must be reached. Then `active` is set to False and the admin is notified.",
+   "source": "odoo/odoo/addons/base/models/ir_cron.py:592"
+  },
+  {
+   "id": "curated:cron-skip-locked",
+   "difficulty": 3,
+   "question": "How does `ir.cron` stop two cron workers from running the same job at the same time?",
+   "answer": "SELECT ... FOR NO KEY UPDATE SKIP LOCKED",
+   "distractors": [
+    "pg_advisory_xact_lock(cron_id)",
+    "SELECT ... FOR UPDATE NOWAIT",
+    "A lock row in ir_cron_trigger",
+    "A running flag on ir.cron committed first"
+   ],
+   "explanation": "Each worker acquires one ready job and locks its row with `FOR NO KEY UPDATE SKIP LOCKED`, so other workers skip it instead of waiting.",
+   "source": "odoo/odoo/addons/base/models/ir_cron.py:365"
+  },
+  {
+   "id": "curated:cron-commit-progress",
+   "difficulty": 3,
+   "question": "Inside a cron method, what does `self.env['ir.cron']._commit_progress(processed=n)` return?",
+   "answer": "The remaining time (seconds) for this cron run",
+   "distractors": [
+    "The remaining number of records",
+    "The ir.cron.progress record",
+    "True if the cron must stop",
+    "The total done count so far"
+   ],
+   "explanation": "It updates `ir.cron.progress` (done/remaining), commits, and returns `max(cron_end_time - now, 0)`. Outside a cron it only commits and returns `inf`. Batched crons use it to know when to stop.",
+   "source": "odoo/odoo/addons/base/models/ir_cron.py:888"
+  },
+  {
+   "id": "curated:cron-trigger-model",
+   "difficulty": 3,
+   "question": "What does `cron._trigger(at=some_datetime)` create?",
+   "answer": "ir.cron.trigger records",
+   "distractors": [
+    "A new nextcall value on ir.cron",
+    "An ir.cron.progress record",
+    "A bus.bus notification only",
+    "A queued ir.actions.server run"
+   ],
+   "explanation": "`_trigger_list` creates `ir.cron.trigger` records with `call_at`. If one is due now, a postcommit hook calls `_notifydb` to wake up the cron workers. `nextcall` is not changed.",
+   "source": "odoo/odoo/addons/base/models/ir_cron.py:781"
+  },
+  {
+   "id": "curated:attachment-res-field",
+   "difficulty": 3,
+   "question": "`env['ir.attachment'].search([('res_model', '=', 'res.partner')])` does not return the partners' `image_1920` attachments. Why?",
+   "answer": "_search adds res_field = False unless the domain uses id or res_field",
+   "distractors": [
+    "Binary field attachments are stored in another table",
+    "They are public=True and excluded",
+    "They have type='url' and are filtered",
+    "Record rules hide them from all users"
+   ],
+   "explanation": "`ir.attachment._search` adds `Domain('res_field', '=', False)` unless the domain has a condition on `id` or `res_field`, the context has `skip_res_field_check`, or access checks are bypassed.",
+   "source": "odoo/odoo/addons/base/models/ir_attachment.py:635"
+  },
+  {
+   "id": "curated:attachment-html-plain",
+   "difficulty": 3,
+   "question": "A portal user uploads an `.html` file as an attachment. Which mimetype is stored?",
+   "answer": "text/plain",
+   "distractors": [
+    "text/html",
+    "application/octet-stream",
+    "application/xhtml+xml",
+    "The upload is refused"
+   ],
+   "explanation": "`_check_contents` forces XML-like mimetypes (html, svg, xml) to `text/plain` when the user has no write access on `ir.ui.view` (or `attachments_mime_plainxml` is in context). This prevents stored XSS.",
+   "source": "odoo/odoo/addons/base/models/ir_attachment.py:428"
+  },
+  {
+   "id": "curated:base-url-freeze",
+   "difficulty": 3,
+   "question": "Emails contain links to an internal hostname because an admin logged in through it. Which system parameter stops `web.base.url` from being overwritten at login?",
+   "answer": "web.base.url.freeze",
+   "distractors": [
+    "web.base.url.lock",
+    "web.base.url.static",
+    "website.domain.force",
+    "base_setup.freeze_url"
+   ],
+   "explanation": "On authentication, if the user is in `base.group_system`, Odoo sets `web.base.url` to the URL used for the request. This is skipped when `web.base.url.freeze` is set.",
+   "source": "odoo/odoo/addons/base/models/res_users.py:807"
+  },
+  {
+   "id": "curated:force-send-limit",
+   "difficulty": 3,
+   "question": "Odoo sends notification emails immediately only when there are fewer than N of them. Which parameter sets N, and what is the default?",
+   "answer": "mail.mail.force.send.limit, 100",
+   "distractors": [
+    "mail.mail.force.send.limit, 50",
+    "mail.mail.queue.batch.size, 100",
+    "mail.session.batch.size, 1000",
+    "mail.batch_size, 50"
+   ],
+   "explanation": "In `_notify_thread_by_email`: `force_send = len(emails) < force_send_limit` with `get_param('mail.mail.force.send.limit', 100)`. Larger batches go to the queue and are sent by the mail cron. (The docstring still says 50.)",
+   "source": "odoo/addons/mail/models/mail_thread.py:3520",
+   "supersedes": [
+    "config-param:mail.mail.force.send.limit"
+   ]
+  },
+  {
+   "id": "curated:mail-create-nolog",
+   "difficulty": 3,
+   "question": "Which context key skips only the automatic \"Document created\" chatter message at create, while field tracking and auto-subscription still run?",
+   "answer": "mail_create_nolog",
+   "distractors": [
+    "tracking_disable",
+    "mail_notrack",
+    "mail_create_nosubscribe",
+    "mail_auto_subscribe_no_notify"
+   ],
+   "explanation": "`mail_create_nolog` skips the creation message. `mail_notrack` disables value tracking. `mail_create_nosubscribe` skips subscribing the creator. `tracking_disable` turns off all MailThread features.",
+   "source": "odoo/addons/mail/models/mail_thread.py:350"
+  },
+  {
+   "id": "curated:message-post-subtype",
+   "difficulty": 3,
+   "question": "`record.message_post(body='Hi')` is called without `subtype_xmlid` or `subtype_id`. Which subtype does the message get?",
+   "answer": "mail.mt_note",
+   "distractors": [
+    "mail.mt_comment",
+    "mail.mt_activities",
+    "No subtype (False)",
+    "The model's default tracking subtype"
+   ],
+   "explanation": "`if not subtype_id: subtype_id = ...('mail.mt_note')`. So it is an internal note that does not notify followers. Pass `subtype_xmlid='mail.mt_comment'` to send a message to followers.",
+   "source": "odoo/addons/mail/models/mail_thread.py:2311"
+  },
+  {
+   "id": "curated:check-balanced-key",
+   "difficulty": 3,
+   "question": "In 19.0 `account.move._check_balanced` is a context manager used around create/write. Which context key, set to `False`, skips it?",
+   "answer": "check_move_validity",
+   "distractors": [
+    "skip_invoice_sync",
+    "skip_account_move_synchronization",
+    "force_delete",
+    "skip_balance_check"
+   ],
+   "explanation": "`_check_balanced` wraps `_disable_recursion(container, 'check_move_validity', default=True, target=False)`. When the key is False, the balance check is skipped. Only use this when you fix the lines later in the same transaction.",
+   "source": "odoo/addons/account/models/account_move.py:2807",
+   "code": "UserError: The entry is not balanced."
+  },
+  {
+   "id": "curated:lock-exception-model",
+   "difficulty": 3,
+   "question": "Which model stores a temporary exception to a company lock date (per user or for everyone, with an optional end date)?",
+   "answer": "account.lock_exception",
+   "distractors": [
+    "account.lock.date.exception",
+    "account.change.lock.date",
+    "res.company.lock_exception",
+    "account.period.unlock"
+   ],
+   "explanation": "`account.lock_exception` stores `lock_date_field` (fiscalyear/tax/sale/purchase), `user_id` (empty = everyone), `end_datetime` (empty = forever) and a computed state active/revoked/expired. `hard_lock_date` is not one of the fields it can target.",
+   "source": "odoo/addons/account/models/account_lock_exception.py:12"
+  },
+  {
+   "id": "curated:matching-number-p",
+   "difficulty": 3,
+   "question": "A journal item has `matching_number = 'P1234'`. What does this mean?",
+   "answer": "It is only partially reconciled (partials, no full reconcile)",
+   "distractors": [
+    "It is matched with payment 1234",
+    "It is fully reconciled by full reconcile 1234",
+    "It was marked for matching during an import",
+    "It is reconciled with a pending bank statement line"
+   ],
+   "explanation": "`P` + number means partial reconciliation. A plain number is the id of the `account.full.reconcile`. An `I` prefix is a temporary number from imports. `_constrains_matching_number` enforces these rules.",
+   "source": "odoo/addons/account/models/account_move_line.py:1618"
+  },
+  {
+   "id": "curated:unreserve-more-error",
+   "difficulty": 3,
+   "question": "In 19.0, which `stock.quant` method raises this error?",
+   "answer": "_get_reserve_quantity",
+   "distractors": [
+    "_update_available_quantity",
+    "_free_reservation",
+    "_do_unreserve",
+    "_get_available_quantity"
+   ],
+   "explanation": "In 19.0 the reservation calculation is in `stock.quant._get_reserve_quantity`. When the quantity is negative (unreserving) and larger than the `reserved_quantity` of the quants, it raises this error. The cause is usually quants that are out of sync with the move lines.",
+   "source": "odoo/addons/stock/models/stock_quant.py:890",
+   "code": "UserError: It is not possible to unreserve more products of [FURN_001] Desk than you have in stock."
+  },
+  {
+   "id": "curated:removal-strategy-order",
+   "difficulty": 3,
+   "question": "How does `stock.quant._get_removal_strategy` choose the removal strategy?",
+   "answer": "Product category first, then location and its parents, else fifo",
+   "distractors": [
+    "Location first, then product category, else fifo",
+    "Warehouse setting, then product category, else fefo",
+    "Product category only, else lifo",
+    "Operation type, then location, else fifo"
+   ],
+   "explanation": "It returns `product_id.categ_id.removal_strategy_id` if set. Otherwise it walks up `location_id` parents to find a `removal_strategy_id`, and falls back to `'fifo'`.",
+   "source": "odoo/addons/stock/models/stock_quant.py:636"
+  },
+  {
+   "id": "curated:inventory-mode",
+   "difficulty": 3,
+   "question": "Writing `inventory_quantity` on `stock.quant` creates the inventory moves only in \"inventory mode\". What does `_is_inventory_mode()` require?",
+   "answer": "inventory_mode in context and group stock.group_stock_user",
+   "distractors": [
+    "inventory_mode in context only",
+    "The user is a stock manager (group_stock_manager)",
+    "The quant location usage is 'inventory'",
+    "inventory_mode in context and sudo()"
+   ],
+   "explanation": "`return self.env.context.get('inventory_mode') and self.env.user.has_group('stock.group_stock_user')`. Scripts that run as a user without the group skip the inventory logic.",
+   "source": "odoo/addons/stock/models/stock_quant.py:1244"
+  },
+  {
+   "id": "curated:so-auto-lock",
+   "difficulty": 3,
+   "question": "In 19.0, which group makes confirmed sales orders lock automatically (`locked = True`) after confirmation?",
+   "answer": "sale.group_auto_done_setting",
+   "distractors": [
+    "sale.group_lock_orders",
+    "sale.group_auto_lock",
+    "sale.group_sale_order_lock",
+    "sales_team.group_sale_manager"
+   ],
+   "explanation": "`_should_be_locked` returns `res.groups._is_feature_enabled('sale.group_auto_done_setting')`. `action_confirm` then calls `action_lock()`. There is no `done` state anymore. Locking is the `locked` boolean.",
+   "source": "odoo/addons/sale/models/sale_order.py:1203"
+  },
+  {
+   "id": "curated:pos-draft-preset",
+   "difficulty": 3,
+   "question": "Which draft orders of the session are **ignored** by this check in 19.0?",
+   "answer": "Orders whose preset_time is in the future",
+   "distractors": [
+    "Orders with no lines",
+    "Orders of other users",
+    "Orders already synced to the server",
+    "Orders with a total of 0"
+   ],
+   "explanation": "`get_session_orders` returns the session orders where `preset_time` is empty or `<= now`. Draft orders planned for later (presets, e.g. takeaway slots) do not block the closing.",
+   "source": "odoo/addons/point_of_sale/models/pos_session.py:385",
+   "code": "UserError: You cannot close the POS while there are still draft orders for the day."
+  },
+  {
+   "id": "curated:qweb-traw",
+   "difficulty": 3,
+   "question": "A template still uses `t-raw`. What does the 19.0 deprecation warning tell you to do?",
+   "answer": "Use t-out, and wrap content in Markup if necessary",
+   "distractors": [
+    "Use t-esc with t-options html",
+    "Use t-out with t-options-widget 'html'",
+    "Use t-field instead",
+    "Use t-out-raw"
+   ],
+   "explanation": "`_compile_directive_raw` logs: \"Replace by @t-out, and explicitely wrap content in `Markup` if necessary (which likely is not the case)\". `t-out` does not escape values that are already `Markup`.",
+   "source": "odoo/odoo/addons/base/models/ir_qweb.py:2500"
+  },
+  {
+   "id": "curated:dev-all",
+   "difficulty": 3,
+   "question": "Which features does `--dev=all` enable?",
+   "answer": "access, qweb, reload, xml",
+   "distractors": [
+    "access, qweb, reload, xml, replica",
+    "assets, qweb, reload, xml",
+    "pdb, qweb, reload, xml",
+    "access, assets, reload, tests"
+   ],
+   "explanation": "`ALL_DEV_MODE = ['access', 'qweb', 'reload', 'xml']`. `replica` (simulated read-only replica) is not included and must be listed explicitly.",
+   "source": "odoo/odoo/tools/config.py:29"
+  },
+  {
+   "id": "curated:orm-signaling",
+   "difficulty": 3,
+   "question": "In 19.0, how do workers tell each other that the registry or the ormcaches must be reloaded?",
+   "answer": "Insert-only tables named orm_signaling_<name>",
+   "distractors": [
+    "The base_registry_signaling sequence",
+    "pg_notify on the 'registry' channel",
+    "An ir.config_parameter counter",
+    "A bus.bus message on channel 'registry'"
+   ],
+   "explanation": "`setup_signaling` creates `orm_signaling_registry` plus one table per cache (`default`, `assets`, `templates`, `routing`, `groups`, ...). Sequences were replaced because they do not work with logical replication.",
+   "source": "odoo/odoo/orm/registry.py:1071"
+  },
+  {
+   "id": "curated:website-no-cow",
+   "difficulty": 3,
+   "question": "Writing on a generic `ir.ui.view` with `website_id` in the context creates a website-specific copy. Which context key prevents that copy-on-write?",
+   "answer": "no_cow",
+   "distractors": [
+    "website_no_copy",
+    "no_website_specific",
+    "skip_cow",
+    "force_generic_view"
+   ],
+   "explanation": "`website`'s `ir.ui.view.write` returns a plain `super().write` when there is no `website_id` in context or when `no_cow` is set. Otherwise generic views are copied for the current website.",
+   "source": "odoo/addons/website/models/ir_ui_view.py:111"
+  },
+  {
+   "id": "curated:employee-inherits",
+   "difficulty": 3,
+   "question": "In 19.0, `hr.employee` uses `_inherits` (delegation) on which model?",
+   "answer": "hr.version",
+   "distractors": [
+    "resource.resource",
+    "hr.contract",
+    "res.partner",
+    "hr.employee.public"
+   ],
+   "explanation": "`_inherits = {'hr.version': 'version_id'}`. Contract and job data are on versions. `resource.resource` is linked through `resource.mixin` as a normal many2one.",
+   "source": "odoo/addons/hr/models/hr_employee.py:45"
   }
  ]
 }

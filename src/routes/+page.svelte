@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { dateKeyUTC, isValidKey, keyFromIndex, dayIndex, msUntilNextDay, pickDaily } from '#lib/daily.ts';
 	import { inline } from '#lib/inline.ts';
+	import { sourceUrl } from '#lib/source.ts';
 	import { pool } from '#lib/pool.ts';
 	import { loadDay, loadStats, recordResult, saveDay, type DayState, type Stats } from '#lib/storage.ts';
 	import type { DailySet } from '#lib/types.ts';
@@ -21,10 +22,16 @@
 		constraint: 'Constraints',
 		cron: 'Scheduled actions',
 		sequence: 'Sequences',
-		'group-implied': 'Access rights',
+		'group-implied': 'Groups',
 		'mail-template': 'Mail templates',
 		'config-param': 'System parameters',
-		'server-option': 'Server config'
+		'server-option': 'Server config',
+		'field-origin': 'Field origin',
+		'field-related': 'Related fields',
+		'field-ondelete': 'Foreign keys',
+		'company-dependent': 'Multi-company',
+		'access-rights': 'Access rights',
+		'record-rule': 'Record rules'
 	};
 	const DIFF = ['', 'Easy', 'Medium', 'Hard'];
 	/** Identifiers (models, modules, xmlids, values) render as code; prose and labels don't. */
@@ -205,7 +212,8 @@
 				<p class="result">{day.correct[current] ? 'Correct!' : 'Not quite.'}</p>
 				<p>{@html inline(q.explanation)}</p>
 				<p class="source">
-					<span>Source</span> <code>{q.source}</code>
+					<span>Source</span>
+					<a href={sourceUrl(q.source)} target="_blank" rel="noopener noreferrer" title="Open on GitHub"><code>{q.source}</code></a>
 				</p>
 			</div>
 			<div class="actions">
@@ -356,6 +364,8 @@
 	.feedback.good .result { color: var(--ok); }
 	.feedback:not(.good) .result { color: var(--bad); }
 	.source { font-size: 0.85rem; color: var(--muted); }
+	.source a { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+	.source a:hover { color: var(--accent); }
 	.source span { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 700; margin-right: 4px; }
 
 	.actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }

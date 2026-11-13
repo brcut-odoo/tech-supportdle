@@ -23,11 +23,20 @@ npm run preview      # serve build/
 `src/lib/daily.ts`:
 
 - The day key is the **UTC** date `YYYY-MM-DD`. Puzzle #1 is `EPOCH` (2026-11-12).
-- The pool is sorted by `id`, so file order doesn't matter, then split into buckets:
-  2 easy, 1 curated, 1 medium, 1 hard.
-- Each bucket is a **deck** shuffled with a seeded PRNG (`cyrb128` → `mulberry32`, in `src/lib/rng.ts`).
-  Day *N* deals cards `N*count … N*count+count-1`. When a deck runs out, it is reshuffled with the next
-  cycle number as seed. As a result, nothing repeats until a bucket is exhausted.
+- The pool is sorted by `id`, so file order doesn't matter. A day is 2 medium, 1 curated (medium or hard)
+  and 2 hard questions. The game targets experienced support engineers, so the generator drops easy
+  questions entirely. Hard generated questions are limited to "familiar" models (`Scan.familiar_models`
+  in `scripts/extractors/common.py`): models with a window action, no wizards or `ir.*` internals, owned by
+  an app or a widely used module.
+- Families are grouped into **topics** (`TOPIC` in `daily.ts`: fields, security, models, errors, data,
+  setup). The 2 hard questions come from 2 different topics and the 2 medium ones from two others. Topics are
+  chosen least-recently-shown first, with ties broken by a date-seeded shuffle, so every topic returns
+  within a few days.
+- Each topic × difficulty (and the curated set) is a **deck** shuffled with a seeded PRNG
+  (`cyrb128` → `mulberry32`, in `src/lib/rng.ts`). A deck deals its next card each time its topic is
+  picked; deck positions are replayed from the epoch, which is cheap and cached. When a deck runs out, it
+  is reshuffled with the next cycle number as seed, so nothing repeats until that deck is exhausted.
+- When you add a new family in the generator, add it to `TOPIC`. Otherwise it becomes its own topic.
 - The 3 distractors and the option order come from a PRNG seeded with the date key.
 - `?d=YYYY-MM-DD` replays a past day. Future dates and dates before the epoch fall back to today.
   Replays don't count toward stats.
@@ -75,9 +84,13 @@ Append to `curated.json`:
   "distractors": ["…", "…", "…"],
   "explanation": "Why, with a pointer to the code.",
   "source": "odoo/addons/<module>/models/<file>.py:<line>",
-  "code": "optional error text shown as a snippet"
+  "code": "optional error text shown as a snippet",
+  "supersedes": ["config-param:some.key"]
 }
 ```
+
+`supersedes` is optional. It lists ids of generated questions about the same fact. Those are dropped from
+the pool, so one question can never give away another's answer on the same day.
 
 ## Deploy
 
