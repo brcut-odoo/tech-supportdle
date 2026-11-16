@@ -175,6 +175,17 @@
 	{/if}
 </header>
 
+{#if set && replay}
+	<div class="replay-warning" role="status">
+		<span class="icon" aria-hidden="true">!</span>
+		<p>
+			<strong>This isn't today's game.</strong> You're playing #{set.number} from {set.dateKey}, opened from a
+			link. It won't count toward your stats or streak.
+		</p>
+		<a class="today" href={resolve('/')}>Play today's set</a>
+	</div>
+{/if}
+
 {#if !set}
 	<div class="card skeleton" aria-busy="true">Loading today's questions…</div>
 {:else if q}
@@ -305,6 +316,24 @@
 		background: var(--surface-2); border: 1px solid var(--border);
 		border-radius: 999px; padding: 0 8px; font-size: 0.75rem;
 	}
+	.replay-warning {
+		display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+		margin: 0 0 16px; padding: 12px 14px;
+		background: var(--warn-bg); color: var(--warn);
+		border: 1px solid var(--warn-border); border-radius: var(--radius);
+		font-size: 0.92rem;
+	}
+	.replay-warning p { margin: 0; flex: 1 1 260px; }
+	.replay-warning .icon {
+		flex: none; width: 22px; height: 22px; border-radius: 50%;
+		display: grid; place-items: center;
+		background: var(--warn); color: var(--warn-bg); font-weight: 800; font-size: 0.85rem;
+	}
+	.replay-warning .today {
+		flex: none; color: var(--warn); font-weight: 700; white-space: nowrap;
+		border: 1px solid var(--warn-border); border-radius: 999px; padding: 4px 12px; text-decoration: none;
+	}
+	.replay-warning .today:hover { background: var(--warn-border); color: var(--text); }
 	.progress { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
 	.progress li {
 		width: 26px; height: 8px; border-radius: 4px;
